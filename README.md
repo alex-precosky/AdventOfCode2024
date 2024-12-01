@@ -1,5 +1,7 @@
 # AdventOfCode2024
 
+GitHub Action Status: ![rust](https://github.com/alex-precosky/AdventOfCode2024/actions/workflows/rust.yml/badge.svg)
+
 My solutions to advent of code 2024. I'll by trying to do this in rust this year.
 
 Development was done in Windows Subsystem for Linux 2 on Windows 10.
