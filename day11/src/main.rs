@@ -1,81 +1,96 @@
-use std::{collections::LinkedList, str::FromStr};
+use std::collections::HashMap;
 
 use ::aoc::aoc::AocResult;
-use aoc::aoc::AocError;
 
-type StonesLinkedList = LinkedList<u64>;
+// Key: Stone number
+// Value: How many stones of that number are there
+type StonesMap = HashMap<u64, u64>;
 
-fn read_input(s: &str) -> AocResult<StonesLinkedList> {
-    let mut sll = StonesLinkedList::new();
+fn read_input(s: &str, initial_blink_count: u64) -> AocResult<StonesMap> {
+    let mut sm = StonesMap::new();
 
     for ss in s.split_ascii_whitespace() {
         let stone_number: u64 = ss.parse().unwrap();
-        sll.push_back(stone_number);
+        sm.entry(stone_number).and_modify(|x| *x += 1).or_insert(1);
     }
 
-    Ok(sll)
+    Ok(sm)
 }
 
 fn main() {
-    let input_str =
-        std::fs::read_to_string("input/day11_ex02.txt").expect("The file couldnt be read");
-    let mut sll = read_input(&input_str).unwrap();
+    let input_str = std::fs::read_to_string("input/day11.txt").expect("The file couldnt be read");
 
     let num_blinks = 75;
-    let num_stones = blink_stones_and_count(&mut sll, num_blinks);
-    //println!("{:?}", sll);
+
+    let mut sm = read_input(&input_str, num_blinks).unwrap();
+
+    let num_stones = blink_stones_and_count(&mut sm, num_blinks);
+    //println!("{:?}", sm);
     println!(
         "Part 1: Num stones after blinking {} times: {:?}",
         num_blinks, num_stones
     );
-
 }
 
-fn blink_stones_and_count(sll: &mut StonesLinkedList, num_blinks: u64) -> usize {
-    let mut i = 0;
-    for _ in 0..num_blinks {
-        *sll = blink_stones(sll);
-	println!("{}, {}", i, sll.len());
-	i += 1;
-    }
+fn blink_stones_once(sm: &mut StonesMap) -> StonesMap {
+    let mut return_sm = StonesMap::new();
 
-    sll.len()
-}
+    for (stone_num, stone_count) in sm {
+        if *stone_num == 0 {
+            return_sm
+                .entry(1)
+                .and_modify(|x| *x += *stone_count)
+                .or_insert(*stone_count);
 
-fn blink_stones(sll: &mut StonesLinkedList) -> StonesLinkedList {
-    let mut return_sll = StonesLinkedList::new();
+        //println!("1");
+        } else if stone_num.to_string().len() % 2 == 0 {
+            let (left_digits, right_digits) = split_digits(&stone_num);
 
-    for stone in sll.iter_mut() {
-        if *stone == 0 {
-	    return_sll.push_back(1);
-        } else if stone.to_string().len() % 2 == 0 {
-	    let (left_digits, right_digits) = split_digits(&stone);
-	    return_sll.push_back(left_digits);
-	    return_sll.push_back(right_digits);
+            return_sm
+                .entry(left_digits)
+                .and_modify(|x| *x += *stone_count)
+                .or_insert(*stone_count);
+
+            return_sm
+                .entry(right_digits)
+                .and_modify(|x| *x += *stone_count)
+                .or_insert(*stone_count);
+
+        //println!("split");
         } else {
-	    return_sll.push_back(*stone * 2024);
+            return_sm
+                .entry(stone_num * 2024)
+                .and_modify(|x| *x += *stone_count)
+                .or_insert(*stone_count);
+            //println!("other. new stone; {}", stone.num );
         }
     }
 
-    return_sll
+    return_sm
 }
 
-fn insert_at(sll: &mut StonesLinkedList, idx: usize, val: u64) {
-    let mut tail = sll.split_off(idx);
-    sll.push_back(val);
-    sll.append(&mut tail);
+fn blink_stones_and_count(sm: &mut StonesMap, num_blinks: u64) -> u64 {
+    let mut count = 0;
+
+    for _ in 0..num_blinks {
+        *sm = blink_stones_once(sm);
+    }
+
+    for v in sm.values() {
+        count += v;
+    }
+
+    count
 }
 
 fn split_digits(num: &u64) -> (u64, u64) {
-
     let digits_as_str = num.to_string();
     let num_digits = digits_as_str.len();
 
     let (left_digits_str, right_digits_str) = digits_as_str.split_at(num_digits / 2);
 
-    (left_digits_str.parse().unwrap(), right_digits_str.parse().unwrap())
+    (
+        left_digits_str.parse().unwrap(),
+        right_digits_str.parse().unwrap(),
+    )
 }
-
-
-
-// TODO. Blink stones 75 times, one at a time. pop_back() them once done blinking each stone, and increment a counter
